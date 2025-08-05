@@ -1,0 +1,29 @@
+{
+  "name": "shopping-list-app",
+  "version": "1.0.0",
+  "description": "Full-stack shopping list application with React frontend and Azure Functions backend",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "install:backend": "cd API && dotnet restore",
+    "install:frontend": "cd Client && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd API && func start",
+    "dev:frontend": "cd Client && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd API && dotnet build",
+    "build:frontend": "cd Client && npm run build",
+    "start": "npm run dev"
+  },
+  "keywords": ["shopping-list", "react", "azure-functions", "cosmosdb", "typescript", "full-stack"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": ["Client"],
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
