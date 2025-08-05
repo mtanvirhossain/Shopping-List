@@ -48,12 +48,17 @@ namespace API.Services
                 // If user doesn't exist, return failure
                 if (user == null)
                 {
+                    Console.WriteLine($"DEBUG: User not found for username/email: {usernameOrEmail}");
                     return new AuthenticationResult
                     {
                         IsSuccess = false,
                         ErrorMessage = "Invalid username or password"
                     };
                 }
+
+                Console.WriteLine($"DEBUG: User found - Username: {user.Username}, Email: {user.Email}");
+                Console.WriteLine($"DEBUG: Password hash: {user.PasswordHash}");
+                Console.WriteLine($"DEBUG: Input password: {password}");
 
                 // Step 3: Check if account is locked
                 if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow)
@@ -67,8 +72,11 @@ namespace API.Services
 
                 // Step 4: Verify password
                 bool isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+                Console.WriteLine($"DEBUG: Password verification result: {isPasswordValid}");
+                
                 if (!isPasswordValid)
                 {
+                    Console.WriteLine($"DEBUG: Password verification failed");
                     // Increment failed login attempts
                     user.FailedLoginAttempts++;
                     
@@ -202,7 +210,27 @@ namespace API.Services
                 };
 
                 // Step 7: Save user to database
-                await CosmosDbService.CreateUserAsync(newUser);
+                try
+                {
+                    var savedUser = await CosmosDbService.CreateUserAsync(newUser);
+                    Console.WriteLine($"DEBUG: User saved successfully with ID: {savedUser.Id}");
+                    
+                    // Test retrieval immediately after saving
+                    var retrievedUser = await CosmosDbService.GetUserByUsernameAsync(newUser.Username);
+                    if (retrievedUser != null)
+                    {
+                        Console.WriteLine($"DEBUG: User retrieved successfully: {retrievedUser.Username}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("DEBUG: User not found after saving!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"DEBUG: Error saving user: {ex.Message}");
+                    throw;
+                }
 
                 // Step 8: Generate JWT token for automatic login
                 var token = JwtService.GenerateToken(newUser);

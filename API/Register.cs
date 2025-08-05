@@ -27,11 +27,22 @@ namespace API
         /// <returns>HTTP response with authentication token or error message</returns>
         [FunctionName("Register")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "register")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", "options", Route = "Register")] HttpRequest req,
             ILogger log)
         {
             // Log the start of the registration process
             log.LogInformation("Register function processed a request.");
+
+            // Handle CORS preflight requests
+            if (req.Method.ToLower() == "options")
+            {
+                log.LogInformation("Handling OPTIONS request for Register");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                req.HttpContext.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                return new OkResult();
+            }
 
             try
             {
@@ -116,7 +127,12 @@ namespace API
                     });
                 }
 
-                // Step 4: Return success response with authentication information
+                // Step 4: Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                
+                // Step 5: Return success response with authentication information
                 // If registration is successful, the user is automatically logged in
                 log.LogInformation("User registration successful for username: {Username}", registerRequest.Username);
                 

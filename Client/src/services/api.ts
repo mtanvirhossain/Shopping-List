@@ -19,6 +19,7 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 second timeout
 });
 
 // Add request interceptor to include auth token and subscription key
@@ -42,18 +43,6 @@ api.interceptors.request.use(
     },
     (error) => {
         // Log any errors that occur during request setup
-        console.error('Request error:', error);
-        return Promise.reject(error);
-    }
-);
-
-// Add request interceptor for better error handling
-api.interceptors.request.use(
-    (config) => {
-        console.log('Making request to:', config.url);
-        return config;
-    },
-    (error) => {
         console.error('Request error:', error);
         return Promise.reject(error);
     }
@@ -84,9 +73,20 @@ export const shoppingListApi = {
     // Test backend connectivity
     testConnection: async (): Promise<boolean> => {
         try {
-            const response = await api.get('/GetShoppingList');
+            // Try to connect to any endpoint - if we get a 401, the server is running
+            const response = await axios.get('http://localhost:7071/api/GetShoppingList', {
+                headers: {
+                    'X-Subscription-Key': DEMO_SUBSCRIPTION_KEYS.DEMO
+                }
+            });
             return true;
-        } catch (error) {
+        } catch (error: any) {
+            // If we get a 401 Unauthorized, the server is running but we need auth
+            // If we get a network error, the server is not running
+            if (error.response?.status === 401) {
+                console.log('Backend is running but requires authentication');
+                return true; // Server is running
+            }
             console.error('Backend connection test failed:', error);
             return false;
         }

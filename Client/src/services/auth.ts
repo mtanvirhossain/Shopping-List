@@ -11,6 +11,7 @@ const authApi = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 second timeout
 });
 
 // Available subscription keys for demo purposes
@@ -32,6 +33,8 @@ export const authService = {
      * @returns Promise that resolves to AuthResponse with JWT token
      */
     login: async (credentials: LoginRequest): Promise<AuthResponse> => {
+        console.log('Attempting login with credentials:', credentials);
+        
         // Add subscription key to the request headers
         // The API requires a valid subscription key for authentication
         const config = {
@@ -40,9 +43,16 @@ export const authService = {
             }
         };
 
-        // Make POST request to the login endpoint
-        const response = await authApi.post('/Login', credentials, config);
-        return response.data;
+        try {
+            console.log('Making login request to:', `${API_BASE_URL}/Login`);
+            // Make POST request to the login endpoint
+            const response = await authApi.post('/Login', credentials, config);
+            console.log('Login response received:', response.status);
+            return response.data;
+        } catch (error) {
+            console.error('Login request failed:', error);
+            throw error;
+        }
     },
 
     /**
@@ -51,6 +61,8 @@ export const authService = {
      * @returns Promise that resolves to AuthResponse with JWT token
      */
     register: async (userData: RegisterRequest): Promise<AuthResponse> => {
+        console.log('Attempting registration with userData:', userData);
+        
         // Add subscription key to the request headers
         // The API requires a valid subscription key for registration
         const config = {
@@ -59,9 +71,16 @@ export const authService = {
             }
         };
 
-        // Make POST request to the register endpoint
-        const response = await authApi.post('/Register', userData, config);
-        return response.data;
+        try {
+            console.log('Making registration request to:', `${API_BASE_URL}/Register`);
+            // Make POST request to the register endpoint
+            const response = await authApi.post('/Register', userData, config);
+            console.log('Registration response received:', response.status);
+            return response.data;
+        } catch (error) {
+            console.error('Registration request failed:', error);
+            throw error;
+        }
     },
 
     /**

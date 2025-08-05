@@ -27,11 +27,22 @@ namespace API
         /// <returns>HTTP response with authentication token or error message</returns>
         [FunctionName("Login")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "login")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", "options", Route = "Login")] HttpRequest req,
             ILogger log)
         {
             // Log the start of the login process
             log.LogInformation("Login function processed a request.");
+
+            // Handle CORS preflight requests
+            if (req.Method.ToLower() == "options")
+            {
+                log.LogInformation("Handling OPTIONS request for Login");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                req.HttpContext.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                return new OkResult();
+            }
 
             try
             {
@@ -116,7 +127,12 @@ namespace API
                     });
                 }
 
-                // Step 4: Return success response with authentication information
+                // Step 4: Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                
+                // Step 5: Return success response with authentication information
                 // If authentication is successful, return the JWT token and user info
                 log.LogInformation("User authentication successful for username: {Username}", loginRequest.Username);
                 

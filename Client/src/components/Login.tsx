@@ -22,14 +22,14 @@ import { authService } from '../services/auth';
  */
 interface LoginProps {
     /** Callback function called when user successfully logs in or registers */
-    onLogin: (authResponse: AuthResponse) => void;
+    onLoginSuccess: () => void;
 }
 
 /**
  * Login component that handles both user login and registration
  * Provides a tabbed interface for switching between login and registration forms
  */
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     // State for controlling which tab is active (0 = Login, 1 = Register)
     const [tabValue, setTabValue] = useState(0);
     
@@ -112,8 +112,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             // Call the authentication service to login
             const response = await authService.login(loginData);
             
-            // If successful, call the onLogin callback with user data
-            onLogin(response);
+            // Store the JWT token in localStorage
+            authService.setToken(response.token);
+            
+            // If successful, call the onLoginSuccess callback
+            onLoginSuccess();
         } catch (err: any) {
             // Handle login errors and display appropriate message
             const errorMessage = err.response?.data?.message || err.message || 'Login failed';
@@ -160,8 +163,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             // Call the authentication service to register
             const response = await authService.register(registerData);
             
-            // If successful, call the onLogin callback (registration auto-logs in user)
-            onLogin(response);
+            // Store the JWT token in localStorage
+            authService.setToken(response.token);
+            
+            // If successful, call the onLoginSuccess callback (registration auto-logs in user)
+            onLoginSuccess();
         } catch (err: any) {
             // Handle registration errors and display appropriate message
             const errorMessage = err.response?.data?.message || err.message || 'Registration failed';

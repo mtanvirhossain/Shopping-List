@@ -12,7 +12,7 @@ import ShoppingListTable from './components/ShoppingListTable';
 import AddItemForm from './components/AddItemForm';
 import SearchItem from './components/SearchItem';
 import ConnectionStatus from './components/ConnectionStatus';
-import { Login } from './components/Login';
+import Login from './components/Login'; // Fixed: Changed from named import to default import
 import { ShoppingListItem } from './types/ShoppingListItem';
 import { authService } from './services/auth';
 

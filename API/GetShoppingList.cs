@@ -25,11 +25,22 @@ namespace API
         /// <returns>HTTP response with shopping list items if successful, error message if failed</returns>
         [FunctionName("GetShoppingList")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", "options", Route = null)] HttpRequest req,
             ILogger log)
         {
             // Log the start of the GetShoppingList function execution
             log.LogInformation("GetShoppingList function processed a request.");
+
+            // Handle CORS preflight requests
+            if (req.Method.ToLower() == "options")
+            {
+                log.LogInformation("Handling OPTIONS request for GetShoppingList");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                req.HttpContext.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                return new OkResult();
+            }
 
             try
             {
@@ -43,6 +54,12 @@ namespace API
                 {
                     // Log the failed subscription key validation for monitoring
                     log.LogWarning("Invalid subscription key attempt in GetShoppingList: {SubscriptionKey}", subscriptionKey);
+                    
+                    // Add CORS headers to error response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult($"Subscription key validation failed: {subscriptionValidation.ErrorMessage}");
                 }
 
@@ -57,6 +74,12 @@ namespace API
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     log.LogWarning("Missing or invalid Authorization header");
+                    
+                    // Add CORS headers to error response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Authorization header required");
                 }
 
@@ -69,6 +92,12 @@ namespace API
                 if (principal == null)
                 {
                     log.LogWarning("Invalid JWT token provided");
+                    
+                    // Add CORS headers to error response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Invalid token");
                 }
 
@@ -78,6 +107,12 @@ namespace API
                 if (string.IsNullOrEmpty(userId))
                 {
                     log.LogWarning("JWT token missing user identifier claim");
+                    
+                    // Add CORS headers to error response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Invalid token");
                 }
 
@@ -88,7 +123,12 @@ namespace API
                 // Log successful retrieval
                 log.LogInformation("Successfully retrieved {ItemCount} items for user: {UserId}", items.Count, userId);
 
-                // Step 6: Return the shopping list items
+                // Step 6: Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                
+                // Step 7: Return the shopping list items
                 // Return HTTP 200 OK with the list of shopping items
                 return new OkObjectResult(items);
             }
@@ -96,6 +136,12 @@ namespace API
             {
                 // Log any unexpected errors that occur during the process
                 log.LogError(ex, "Unexpected error while getting shopping list");
+                
+                // Add CORS headers to error response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "GET, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                
                 return new StatusCodeResult(500);
             }
         }

@@ -63,6 +63,8 @@ namespace API.Services
         {
             try
             {
+                Console.WriteLine($"DEBUG: Initializing CosmosDB with connection string: {ConnectionString}");
+                
                 // Step 1: Create Cosmos DB client
                 // The client manages the connection to the Cosmos DB account
                 _cosmosClient = new CosmosClient(ConnectionString);
@@ -71,6 +73,7 @@ namespace API.Services
                 // CreateDatabaseIfNotExistsAsync will create the database if it doesn't exist,
                 // or return the existing database if it does exist
                 var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseName);
+                Console.WriteLine($"DEBUG: Database created/found: {DatabaseName}");
                 
                 // Step 3: Create or get the containers
                 // CreateContainerIfNotExistsAsync will create the container if it doesn't exist,
@@ -79,13 +82,16 @@ namespace API.Services
                 // Users container - partitioned by user ID for efficient queries
                 // Note: Using /id as partition key to match existing container structure
                 _usersContainer = await database.Database.CreateContainerIfNotExistsAsync(UsersContainerName, "/id");
+                Console.WriteLine($"DEBUG: Users container created/found: {UsersContainerName}");
                 
                 // Shopping items container - partitioned by item ID to match existing container structure
                 // Note: Using /id as partition key to match existing container structure
                 _itemsContainer = await database.Database.CreateContainerIfNotExistsAsync(ItemsContainerName, "/id");
+                Console.WriteLine($"DEBUG: Items container created/found: {ItemsContainerName}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"DEBUG: Exception in InitializeAsync: {ex.Message}");
                 // Log the error and rethrow for proper error handling
                 throw new Exception($"Failed to initialize Cosmos DB: {ex.Message}", ex);
             }
@@ -103,25 +109,32 @@ namespace API.Services
 
             try
             {
-                // Step 1: Create a parameterized query
-                // Using parameterized queries prevents SQL injection attacks
-                var query = new QueryDefinition("SELECT * FROM c WHERE c.Username = @username")
-                    .WithParameter("@username", username);
+                Console.WriteLine($"DEBUG: Searching for user with username: {username}");
+                
+                // Step 1: Get all users and filter by username
+                // This is a fallback approach when cross-partition queries don't work
+                var query = new QueryDefinition("SELECT * FROM c");
                 
                 // Step 2: Execute the query with cross-partition enabled
                 // GetItemQueryIterator creates an iterator for the query results
-                var iterator = _usersContainer!.GetItemQueryIterator<API.Models.User>(query);
+                var iterator = _usersContainer!.GetItemQueryIterator<API.Models.User>(query, requestOptions: new QueryRequestOptions { MaxItemCount = 100, EnableScanInQuery = true });
                 
                 // Step 3: Read the results
                 // ReadNextAsync reads the next page of results
                 var results = await iterator.ReadNextAsync();
                 
-                // Step 4: Return the first (and should be only) result
-                // FirstOrDefault returns the first item or null if no items found
-                return results.FirstOrDefault();
+                // Step 4: Filter by username in memory
+                var user = results.FirstOrDefault(u => u.Username == username);
+                Console.WriteLine($"DEBUG: User found: {user != null}");
+                if (user != null)
+                {
+                    Console.WriteLine($"DEBUG: Found user - Username: {user.Username}, Email: {user.Email}, Id: {user.Id}");
+                }
+                return user;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"DEBUG: Exception in GetUserByUsernameAsync: {ex.Message}");
                 // If any error occurs (connection issues, etc.), return null
                 return null;
             }
@@ -139,22 +152,21 @@ namespace API.Services
 
             try
             {
-                // Step 1: Create a parameterized query for email search
-                // Using parameterized queries prevents SQL injection attacks
-                var query = new QueryDefinition("SELECT * FROM c WHERE c.Email = @email")
-                    .WithParameter("@email", email);
+                // Step 1: Get all users and filter by email
+                // This is a fallback approach when cross-partition queries don't work
+                var query = new QueryDefinition("SELECT * FROM c");
                 
                 // Step 2: Execute the query with cross-partition enabled
                 // GetItemQueryIterator creates an iterator for the query results
-                var iterator = _usersContainer!.GetItemQueryIterator<API.Models.User>(query);
+                var iterator = _usersContainer!.GetItemQueryIterator<API.Models.User>(query, requestOptions: new QueryRequestOptions { MaxItemCount = 100, EnableScanInQuery = true });
                 
                 // Step 3: Read the results
                 // ReadNextAsync reads the next page of results
                 var results = await iterator.ReadNextAsync();
                 
-                // Step 4: Return the first (and should be only) result
-                // FirstOrDefault returns the first item or null if no items found
-                return results.FirstOrDefault();
+                // Step 4: Filter by email in memory
+                var user = results.FirstOrDefault(u => u.Email == email);
+                return user;
             }
             catch
             {
@@ -308,9 +320,21 @@ namespace API.Services
             // Ensure the Cosmos DB connection is initialized
             if (_usersContainer == null) await InitializeAsync();
 
-            // Create the user item with the correct partition key (Id)
-            var response = await _usersContainer!.CreateItemAsync(user, new PartitionKey(user.Id));
-            return response.Resource;
+            try
+            {
+                Console.WriteLine($"DEBUG: Creating user - Username: {user.Username}, Email: {user.Email}, Id: {user.Id}");
+                
+                // Create the user item with the correct partition key (Id)
+                var response = await _usersContainer!.CreateItemAsync(user, new PartitionKey(user.Id));
+                
+                Console.WriteLine($"DEBUG: User created successfully - Status: {response.StatusCode}");
+                return response.Resource;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DEBUG: Exception in CreateUserAsync: {ex.Message}");
+                throw;
+            }
         }
 
         public static async Task<List<ShoppingListItem>> GetUserItemsAsync(string userId)
