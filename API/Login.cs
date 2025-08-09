@@ -37,10 +37,7 @@ namespace API
             if (req.Method.ToLower() == "options")
             {
                 log.LogInformation("Handling OPTIONS request for Login");
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
-                req.HttpContext.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                CorsHelper.SetCorsHeadersForOptions(req, req.HttpContext.Response);
                 return new OkResult();
             }
 
@@ -56,6 +53,10 @@ namespace API
                 {
                     // Log the failed subscription key validation for monitoring
                     log.LogWarning("Invalid subscription key attempt in Login: {SubscriptionKey}", subscriptionKey);
+                    
+                    // Add CORS headers to the response
+                    CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
+                    
                     return new UnauthorizedObjectResult(new ErrorResponse 
                     { 
                         Message = $"Subscription key validation failed: {subscriptionValidation.ErrorMessage}",
@@ -74,6 +75,10 @@ namespace API
                 if (string.IsNullOrEmpty(requestBody))
                 {
                     log.LogWarning("Empty request body in Login");
+                    
+                    // Add CORS headers to the response
+                    CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Request body is required",
@@ -90,6 +95,10 @@ namespace API
                 catch (JsonException ex)
                 {
                     log.LogWarning(ex, "Invalid JSON in Login request body");
+                    
+                    // Add CORS headers to the response
+                    CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Invalid JSON format in request body",
@@ -101,6 +110,10 @@ namespace API
                 if (loginRequest == null)
                 {
                     log.LogWarning("Failed to deserialize Login request");
+                    
+                    // Add CORS headers to the response
+                    CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Invalid login data",
@@ -119,6 +132,9 @@ namespace API
                     log.LogWarning("Authentication failed for username {Username}: {ErrorMessage}", 
                         loginRequest.Username, result.ErrorMessage);
                     
+                    // Add CORS headers to the response
+                    CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
+                    
                     // Return unauthorized status for failed authentication
                     return new UnauthorizedObjectResult(new ErrorResponse 
                     { 
@@ -128,9 +144,7 @@ namespace API
                 }
 
                 // Step 4: Add CORS headers to the response
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
-                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
                 
                 // Step 5: Return success response with authentication information
                 // If authentication is successful, return the JWT token and user info
@@ -142,6 +156,9 @@ namespace API
             {
                 // Log any unexpected errors that occur during the authentication process
                 log.LogError(ex, "Unexpected error during user authentication");
+                
+                // Add CORS headers to the response
+                CorsHelper.SetCorsHeaders(req, req.HttpContext.Response);
                 
                 // Return a generic error response to avoid exposing internal details
                 return new StatusCodeResult(500);

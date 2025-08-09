@@ -56,6 +56,12 @@ namespace API
                 {
                     // Log the failed subscription key validation for monitoring
                     log.LogWarning("Invalid subscription key attempt in Register: {SubscriptionKey}", subscriptionKey);
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult(new ErrorResponse 
                     { 
                         Message = $"Subscription key validation failed: {subscriptionValidation.ErrorMessage}",
@@ -74,6 +80,12 @@ namespace API
                 if (string.IsNullOrEmpty(requestBody))
                 {
                     log.LogWarning("Empty request body in Register");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Request body is required",
@@ -90,6 +102,12 @@ namespace API
                 catch (JsonException ex)
                 {
                     log.LogWarning(ex, "Invalid JSON in Register request body");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Invalid JSON format in request body",
@@ -101,6 +119,12 @@ namespace API
                 if (registerRequest == null)
                 {
                     log.LogWarning("Failed to deserialize Register request");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new BadRequestObjectResult(new ErrorResponse 
                     { 
                         Message = "Invalid registration data",
@@ -118,6 +142,11 @@ namespace API
                     // Log the registration failure with details
                     log.LogWarning("Registration failed for username {Username}: {ErrorMessage}", 
                         registerRequest.Username, result.ErrorMessage);
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
                     
                     // Return appropriate HTTP status based on the type of error
                     return new BadRequestObjectResult(new ErrorResponse 
@@ -142,6 +171,11 @@ namespace API
             {
                 // Log any unexpected errors that occur during the registration process
                 log.LogError(ex, "Unexpected error during user registration");
+                
+                // Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
                 
                 // Return a generic error response to avoid exposing internal details
                 return new StatusCodeResult(500);

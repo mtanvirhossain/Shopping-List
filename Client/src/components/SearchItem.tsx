@@ -10,10 +10,29 @@ import {
     Chip,
     Alert,
     CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
 } from '@mui/material';
-import { Search, Edit, Delete } from '@mui/icons-material';
+import { Search, Edit, Delete, Save, Cancel } from '@mui/icons-material';
 import { ShoppingListItem } from '../types/ShoppingListItem';
 import { shoppingListApi } from '../services/api';
+
+const categories = [
+    'Groceries',
+    'Electronics',
+    'Clothing',
+    'Home & Garden',
+    'Books',
+    'Sports',
+    'Health & Beauty',
+    'Other'
+];
 
 interface SearchItemProps {
     onEditItem: (item: ShoppingListItem) => void;
@@ -25,6 +44,17 @@ const SearchItem: React.FC<SearchItemProps> = ({ onEditItem, onDeleteItem }) => 
     const [item, setItem] = useState<ShoppingListItem | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Edit modal state
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editFormData, setEditFormData] = useState({
+        itemName: '',
+        quantity: 1,
+        category: ''
+    });
+    const [editLoading, setEditLoading] = useState(false);
+    const [editSuccess, setEditSuccess] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     const handleSearch = async () => {
         if (!searchId.trim()) {
@@ -57,6 +87,68 @@ const SearchItem: React.FC<SearchItemProps> = ({ onEditItem, onDeleteItem }) => 
             setError('Failed to delete item');
             console.error('Error deleting item:', err);
         }
+    };
+
+    const handleEditClick = (item: ShoppingListItem) => {
+        setEditFormData({
+            itemName: item.itemName,
+            quantity: item.quantity,
+            category: item.category
+        });
+        setEditModalOpen(true);
+        setEditError(null);
+        setEditSuccess(false);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!editFormData.itemName.trim() || !editFormData.category) {
+            setEditError('Please fill in all required fields');
+            return;
+        }
+
+        if (!item) return;
+
+        try {
+            setEditLoading(true);
+            setEditError(null);
+            
+            // Update the item
+            const updatedItem = await shoppingListApi.updateItem(item.id, {
+                ...item,
+                ...editFormData
+            });
+            
+            // Update the local item state
+            setItem(updatedItem);
+            setEditSuccess(true);
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+                setEditModalOpen(false);
+                setEditSuccess(false);
+            }, 1500);
+            
+        } catch (err) {
+            setEditError('Failed to update item. Please try again.');
+            console.error('Error updating item:', err);
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleEditCancel = () => {
+        setEditModalOpen(false);
+        setEditError(null);
+        setEditSuccess(false);
+    };
+
+    const handleInputChange = (field: string, value: string | number) => {
+        setEditFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     return (
@@ -160,7 +252,7 @@ const SearchItem: React.FC<SearchItemProps> = ({ onEditItem, onDeleteItem }) => 
                             <Button
                                 variant="outlined"
                                 startIcon={<Edit />}
-                                onClick={() => onEditItem(item)}
+                                onClick={() => handleEditClick(item)}
                                 color="primary"
                             >
                                 Edit Item
@@ -188,6 +280,105 @@ const SearchItem: React.FC<SearchItemProps> = ({ onEditItem, onDeleteItem }) => 
                     </Typography>
                 </Paper>
             )}
+
+            {/* Edit Modal */}
+            <Dialog 
+                open={editModalOpen} 
+                onClose={handleEditCancel}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.3)',
+                    }
+                }}
+            >
+                <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    Edit Item
+                </DialogTitle>
+                
+                <DialogContent sx={{ pt: 2 }}>
+                    {editSuccess && (
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                            Item updated successfully!
+                        </Alert>
+                    )}
+
+                    {editError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {editError}
+                        </Alert>
+                    )}
+
+                    <form onSubmit={handleEditSubmit}>
+                        <TextField
+                            fullWidth
+                            label="Item Name"
+                            value={editFormData.itemName}
+                            onChange={(e) => handleInputChange('itemName', e.target.value)}
+                            margin="normal"
+                            required
+                            variant="outlined"
+                            placeholder="Enter item name"
+                        />
+
+                        <TextField
+                            fullWidth
+                            label="Quantity"
+                            type="number"
+                            value={editFormData.quantity}
+                            onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 1)}
+                            margin="normal"
+                            required
+                            variant="outlined"
+                            inputProps={{ min: 1, max: 100 }}
+                        />
+
+                        <FormControl fullWidth margin="normal" required>
+                            <InputLabel>Category</InputLabel>
+                            <Select
+                                value={editFormData.category}
+                                label="Category"
+                                onChange={(e) => handleInputChange('category', e.target.value)}
+                            >
+                                {categories.map((category) => (
+                                    <MenuItem key={category} value={category}>
+                                        {category}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </form>
+                </DialogContent>
+                
+                <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <Button
+                        onClick={handleEditCancel}
+                        startIcon={<Cancel />}
+                        variant="outlined"
+                        disabled={editLoading}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleEditSubmit}
+                        startIcon={editLoading ? <CircularProgress size={20} /> : <Save />}
+                        variant="contained"
+                        disabled={editLoading}
+                        sx={{
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            '&:hover': {
+                                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                            },
+                        }}
+                    >
+                        {editLoading ? 'Updating...' : 'Update Item'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

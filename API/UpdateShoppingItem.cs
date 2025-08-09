@@ -29,10 +29,21 @@ namespace API
         /// <returns>HTTP response with updated item if successful, error message if failed</returns>
         [FunctionName("UpdateShoppingItem")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "{id}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "put", "options", Route = "UpdateShoppingItem/{id}")] HttpRequest req,
             string id,
             ILogger log)
         {
+            // Handle OPTIONS preflight request
+            if (req.Method.ToLower() == "options")
+            {
+                log.LogInformation("Handling OPTIONS request for UpdateShoppingItem");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                req.HttpContext.Response.Headers.Add("Access-Control-Max-Age", "86400");
+                return new StatusCodeResult(200);
+            }
+
             // Log the start of the UpdateShoppingItem function execution
             log.LogInformation("UpdateShoppingItem function processed a request for ID: {id}", id);
 
@@ -48,6 +59,12 @@ namespace API
                 {
                     // Log the failed subscription key validation for monitoring
                     log.LogWarning("Invalid subscription key attempt in UpdateShoppingItem: {SubscriptionKey}", subscriptionKey);
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult($"Subscription key validation failed: {subscriptionValidation.ErrorMessage}");
                 }
 
@@ -62,6 +79,12 @@ namespace API
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
                     log.LogWarning("Missing or invalid Authorization header");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Authorization header required");
                 }
 
@@ -74,6 +97,12 @@ namespace API
                 if (principal == null)
                 {
                     log.LogWarning("Invalid JWT token provided");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Invalid token");
                 }
 
@@ -83,6 +112,12 @@ namespace API
                 if (string.IsNullOrEmpty(userId))
                 {
                     log.LogWarning("JWT token missing user identifier claim");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new UnauthorizedObjectResult("Invalid token");
                 }
 
@@ -98,6 +133,12 @@ namespace API
                 if (item == null || string.IsNullOrEmpty(item.ItemName))
                 {
                     log.LogWarning("Invalid item data - missing required fields");
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new BadRequestObjectResult("ItemName is required");
                 }
 
@@ -113,13 +154,24 @@ namespace API
                 if (updatedItem == null)
                 {
                     log.LogWarning("Item with ID {ItemId} not found for user {UserId}", id, userId);
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
                     return new NotFoundObjectResult($"Item with ID {id} not found");
                 }
 
                 // Log successful item update
                 log.LogInformation("Successfully updated item '{ItemName}' (ID: {ItemId}) for user: {UserId}", updatedItem.ItemName, id, userId);
 
-                // Step 9: Return the updated item
+                // Step 9: Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+
+                // Step 10: Return the updated item
                 // Return HTTP 200 OK with the updated item
                 return new OkObjectResult(updatedItem);
             }
@@ -127,6 +179,12 @@ namespace API
             {
                 // Log any unexpected errors that occur during the process
                 log.LogError(ex, "Unexpected error while updating item with ID: {ItemId}", id);
+                
+                // Add CORS headers to the response
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "PUT, OPTIONS");
+                req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                
                 return new StatusCodeResult(500);
             }
         }

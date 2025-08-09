@@ -1,18 +1,23 @@
 # Shopping List App
 
-A full-stack shopping list application built with React frontend and Azure Functions backend, featuring JWT authentication and Cosmos DB integration.
+A full-stack shopping list application built with React frontend and Azure Functions backend, featuring JWT authentication, Cosmos DB integration, and a beautiful modern UI with glassmorphism design.
 
-![Shopping List App](https://img.shields.io/badge/React-19-blue) ![Azure Functions](https://img.shields.io/badge/Azure%20Functions-.NET%208-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Cosmos DB](https://img.shields.io/badge/Cosmos%20DB-Database-orange)
+![Shopping List App](https://img.shields.io/badge/React-19-blue) ![Azure Functions](https://img.shields.io/badge/Azure%20Functions-.NET%208-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Cosmos DB](https://img.shields.io/badge/Cosmos%20DB-Database-orange) ![Material-UI](https://img.shields.io/badge/Material--UI-5-blue)
 
 ## 🚀 Features
 
 ### Frontend Features
 - **Modern React UI** - Built with React 19 and TypeScript
-- **Material-UI Design** - Clean, responsive user interface
+- **Beautiful Glassmorphism Design** - Modern dark theme with dot background and glass effects
+- **Material-UI Design System** - Clean, responsive user interface with custom theming
 - **User Authentication** - Login and registration with JWT tokens
 - **Real-time Updates** - Instant CRUD operations for shopping items
+- **Inline Editing** - Modal-based editing without page navigation
+- **Advanced Search** - Search items by ID with full CRUD operations
 - **Form Validation** - Client-side validation with error handling
 - **Responsive Design** - Works on desktop and mobile devices
+- **Loading States** - Beautiful loading animations and progress indicators
+- **Error Handling** - Comprehensive error handling with user-friendly messages
 
 ### Backend Features
 - **Azure Functions** - Serverless C# backend with .NET 8
@@ -21,14 +26,35 @@ A full-stack shopping list application built with React frontend and Azure Funct
 - **API Security** - Subscription key validation for all endpoints
 - **Password Security** - BCrypt hashing with account lockout protection
 - **Comprehensive Logging** - Detailed logging for monitoring and debugging
+- **Dynamic CORS Support** - Automatic CORS handling for multiple frontend ports
+- **Enhanced Error Handling** - Proper error responses with CORS headers
 
 ### Security Features
-- **JWT Token Authentication** - Secure API access
+- **JWT Token Authentication** - Secure API access with session storage
 - **Password Hashing** - BCrypt encryption for user passwords
 - **Account Lockout** - Protection against brute force attacks
 - **Subscription Keys** - Additional API security layer
 - **Input Validation** - Server-side validation for all inputs
-- **CORS Configuration** - Proper cross-origin resource sharing setup
+- **Dynamic CORS Configuration** - Proper cross-origin resource sharing setup
+- **Token Expiration** - JWT token validation with expiration checks
+
+## 🎨 UI/UX Enhancements
+
+### Modern Design System
+- **Dark Theme** - Beautiful dark mode with custom color palette
+- **Glassmorphism Effects** - Frosted glass backgrounds and borders
+- **Dot Background** - Subtle dot pattern for visual depth
+- **Gradient Accents** - Modern gradient buttons and highlights
+- **Smooth Animations** - Hover effects and transitions
+- **Typography** - Custom font weights and spacing
+
+### Enhanced User Experience
+- **Inline Editing Modals** - Edit items without leaving current page
+- **Context Preservation** - Maintain search results and table state
+- **Real-time Feedback** - Immediate updates and success confirmations
+- **Loading States** - Professional loading indicators
+- **Error Recovery** - Graceful error handling with retry options
+- **Keyboard Navigation** - Full keyboard support for accessibility
 
 ## 🏗️ Technical Architecture
 
@@ -36,8 +62,9 @@ A full-stack shopping list application built with React frontend and Azure Funct
 - **React 19** - Modern React with hooks and functional components
 - **TypeScript** - Type-safe JavaScript development
 - **Vite** - Fast build tool and development server
-- **Material-UI (MUI)** - React component library
+- **Material-UI (MUI)** - React component library with custom theming
 - **Axios** - HTTP client with request/response interceptors
+- **Session Storage** - Secure token storage for JWT
 
 ### Backend Stack
 - **Azure Functions** - Serverless compute platform
@@ -45,11 +72,13 @@ A full-stack shopping list application built with React frontend and Azure Funct
 - **Cosmos DB** - NoSQL database with partition key `/id`
 - **JWT Tokens** - JSON Web Token authentication
 - **BCrypt.Net** - Password hashing library
+- **Dynamic CORS** - Flexible CORS handling for development
 
 ### Database Schema
 - **Users Container** - User accounts with authentication data
 - **Lists Container** - Shopping list items with user association
 - **Partition Strategy** - Both containers use `/id` as partition key
+- **Cross-Partition Queries** - Optimized queries for user data retrieval
 
 ## 📁 Project Structure
 
@@ -63,22 +92,27 @@ Shopping-List/
 │   │   ├── CosmosDbService.cs   # Database operations
 │   │   ├── JwtService.cs        # JWT token management
 │   │   ├── UserService.cs       # User authentication logic
-│   │   └── SubscriptionKeyService.cs # API key validation
+│   │   ├── SubscriptionKeyService.cs # API key validation
+│   │   └── CorsHelper.cs        # Dynamic CORS handling
 │   ├── Login.cs                 # Login endpoint
 │   ├── Register.cs              # Registration endpoint
 │   ├── GetShoppingList.cs       # Get items endpoint
+│   ├── GetShoppingListById.cs   # Get item by ID endpoint
 │   ├── AddItemInShoppingList.cs # Add item endpoint
 │   ├── UpdateShoppingItem.cs    # Update item endpoint
 │   ├── DeleteShoppingItem.cs    # Delete item endpoint
+│   ├── ValidateToken.cs         # Token validation endpoint
 │   └── host.json               # Azure Functions configuration
 ├── Client/                      # React Frontend
 │   ├── src/
 │   │   ├── components/         # React components
 │   │   │   ├── Login.tsx       # Authentication component
 │   │   │   ├── NavBar.tsx      # Navigation component
-│   │   │   ├── ShoppingListTable.tsx # Items display
+│   │   │   ├── ShoppingListTable.tsx # Items display with inline editing
 │   │   │   ├── AddItemForm.tsx # Add/edit form
-│   │   │   └── SearchItem.tsx  # Search functionality
+│   │   │   ├── SearchItem.tsx  # Search functionality with inline editing
+│   │   │   ├── ConnectionStatus.tsx # Backend connectivity status
+│   │   │   └── AuthDebug.tsx   # Authentication debugging tools
 │   │   ├── services/           # API services
 │   │   │   ├── api.ts          # Shopping list API calls
 │   │   │   └── auth.ts         # Authentication API calls
@@ -157,7 +191,7 @@ npm install
 ```bash
 npm run dev
 ```
-The frontend will be available at `http://localhost:3000`
+The frontend will be available at `http://localhost:3000` or `http://localhost:3001`
 
 ### 4. Database Setup (Cosmos DB)
 
@@ -198,12 +232,14 @@ Replace the connection string in `local.settings.json` with your Cosmos DB conne
 ### Authentication Endpoints
 - `POST /api/register` - User registration
 - `POST /api/login` - User authentication
+- `POST /api/ValidateToken` - Server-side token validation
 
 ### Shopping List Endpoints
 - `GET /api/GetShoppingList` - Get all user's items
+- `GET /api/GetShoppingListById/{id}` - Get specific item by ID
 - `POST /api/AddItemInShoppingList` - Add new item
-- `PUT /api/{id}` - Update existing item
-- `DELETE /api/{id}` - Delete item
+- `PUT /api/UpdateShoppingItem/{id}` - Update existing item
+- `DELETE /api/DeleteShoppingItem/{id}` - Delete item
 
 ### Headers Required
 ```
@@ -211,6 +247,40 @@ Authorization: Bearer {jwt-token}
 X-Subscription-Key: {subscription-key}
 Content-Type: application/json
 ```
+
+## 🎯 New Features & Improvements
+
+### ✨ Inline Editing System
+- **Modal-based editing** - Edit items without leaving current page
+- **Context preservation** - Maintain search results and table state
+- **Real-time updates** - Immediate UI updates after edits
+- **Consistent experience** - Same editing flow across all components
+
+### 🔍 Enhanced Search Functionality
+- **Search by ID** - Find specific items by their unique identifier
+- **Full CRUD operations** - Edit and delete items directly from search results
+- **Inline editing** - Edit items without losing search context
+- **Error handling** - Proper error messages for invalid searches
+
+### 🎨 Modern UI Design
+- **Dark theme** - Beautiful dark mode with custom color palette
+- **Glassmorphism effects** - Frosted glass backgrounds and borders
+- **Dot background** - Subtle dot pattern for visual depth
+- **Gradient accents** - Modern gradient buttons and highlights
+- **Smooth animations** - Hover effects and transitions
+
+### 🔧 Technical Improvements
+- **Dynamic CORS handling** - Automatic CORS support for multiple frontend ports
+- **Enhanced error handling** - Comprehensive error responses with CORS headers
+- **Session storage** - Secure JWT token storage
+- **Loading states** - Professional loading indicators
+- **Form validation** - Improved client-side validation
+
+### 🛡️ Security Enhancements
+- **Token expiration** - JWT token validation with expiration checks
+- **Server-side validation** - Enhanced token validation endpoint
+- **CORS security** - Proper CORS configuration for development
+- **Input sanitization** - Improved input validation and sanitization
 
 ## 🚀 Deployment
 
@@ -253,7 +323,9 @@ dotnet test
 2. Register a new user account
 3. Login with the created account
 4. Add, edit, and delete shopping list items
-5. Test authentication by refreshing the page
+5. Test search functionality by searching for item IDs
+6. Test inline editing in both table and search views
+7. Test authentication by refreshing the page
 
 ## 🐛 Troubleshooting
 
@@ -268,15 +340,22 @@ dotnet test
 - Verify JWT secret key is set in local.settings.json
 - Check Cosmos DB connection string is correct
 - Ensure subscription keys match between frontend and backend
+- Check session storage for JWT tokens
 
 #### CORS Issues
 - Verify CORS settings in host.json
 - Check that frontend URL is allowed in CORS configuration
+- Ensure dynamic CORS handling is working for your port
 
 #### Database Connection Issues
 - Verify Cosmos DB connection string format
 - Ensure database and containers exist with correct names
 - Check that partition keys are set to `/id` for both containers
+
+#### Search Issues
+- Verify item IDs exist in the database
+- Check that the user has permission to access the item
+- Ensure the GetShoppingListById endpoint is properly configured
 
 ## 📊 Performance Considerations
 
@@ -284,11 +363,13 @@ dotnet test
 - **Code Splitting** - Lazy loading of components
 - **Memoization** - React.memo for expensive components
 - **Efficient Re-renders** - Proper dependency arrays in hooks
+- **Optimistic Updates** - Immediate UI updates with server sync
 
 ### Backend Optimizations
 - **Connection Pooling** - Cosmos DB client reuse
 - **Efficient Queries** - Proper partition key usage
 - **Caching** - JWT token validation caching
+- **Cross-Partition Queries** - Optimized queries for user data
 
 ### Database Optimizations
 - **Partition Strategy** - Using `/id` for even distribution
@@ -320,6 +401,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Material-UI team for the component library
 - BCrypt.Net contributors for password security
 - Cosmos DB team for the NoSQL database solution
+- Lightswind for design inspiration
 
 ## 📈 Future Enhancements
 
@@ -332,6 +414,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Mobile App** - React Native mobile application
 - **Offline Support** - Progressive Web App capabilities
 - **Data Export** - Export shopping lists to various formats
+- **Bulk Operations** - Select and edit multiple items at once
+- **Advanced Search** - Search by name, category, or date range
 
 ### Technical Improvements
 - **Unit Tests** - Comprehensive test coverage
@@ -341,6 +425,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Docker Support** - Containerization for local development
 - **GraphQL API** - Alternative to REST endpoints
 - **Microservices** - Split into smaller services
+- **Real-time Updates** - WebSocket integration for live updates
+- **PWA Features** - Service workers and offline caching
 
 ---
 

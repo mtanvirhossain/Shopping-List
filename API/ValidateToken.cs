@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -7,34 +6,32 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using API.Models;
 using API.Services;
 using System.Security.Claims;
 
 namespace API
 {
     /// <summary>
-    /// Azure Function for adding new items to user's shopping list
-    /// This function requires both subscription key and JWT token validation
+    /// Azure Function for validating JWT tokens against the database
+    /// This provides server-side token validation for enhanced security
     /// </summary>
-    public static class AddItemInShoppingList
+    public static class ValidateToken
     {
         /// <summary>
-        /// Adds a new shopping list item for the authenticated user
+        /// Validates a JWT token and returns user information if valid
         /// </summary>
-        /// <param name="req">The HTTP request containing subscription key, JWT token, and item data</param>
+        /// <param name="req">The HTTP request containing the JWT token</param>
         /// <param name="log">Logger for recording function execution details</param>
-        /// <returns>HTTP response with created item if successful, error message if failed</returns>
-        [FunctionName("AddItemInShoppingList")]
+        /// <returns>HTTP response with user information if token is valid</returns>
+        [FunctionName("ValidateToken")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", "options", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", "options", Route = "ValidateToken")] HttpRequest req,
             ILogger log)
         {
             // Handle OPTIONS preflight request
             if (req.Method.ToLower() == "options")
             {
-                log.LogInformation("Handling OPTIONS request for AddItemInShoppingList");
+                log.LogInformation("Handling OPTIONS request for ValidateToken");
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
@@ -42,21 +39,19 @@ namespace API
                 return new StatusCodeResult(200);
             }
 
-            // Log the start of the AddItemInShoppingList function execution
-            log.LogInformation("AddItemInShoppingList function processed a request.");
+            // Log the start of the ValidateToken function execution
+            log.LogInformation("ValidateToken function processed a request.");
 
             try
             {
                 // Step 1: Extract and validate subscription key from request headers
-                // The subscription key should be sent in the 'X-Subscription-Key' header
                 var subscriptionKey = req.Headers["X-Subscription-Key"].ToString();
                 
                 // Validate the subscription key
                 var subscriptionValidation = SubscriptionKeyService.ValidateSubscriptionKey(subscriptionKey ?? string.Empty);
                 if (!subscriptionValidation.IsValid)
                 {
-                    // Log the failed subscription key validation for monitoring
-                    log.LogWarning("Invalid subscription key attempt in AddItemInShoppingList: {SubscriptionKey}", subscriptionKey);
+                    log.LogWarning("Invalid subscription key attempt in ValidateToken: {SubscriptionKey}", subscriptionKey);
                     
                     // Add CORS headers to the response
                     req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -67,10 +62,9 @@ namespace API
                 }
 
                 // Log successful subscription key validation
-                log.LogInformation("Subscription key validated successfully in AddItemInShoppingList: {SubscriptionKey}", subscriptionKey);
+                log.LogInformation("Subscription key validated successfully in ValidateToken: {SubscriptionKey}", subscriptionKey);
 
                 // Step 2: Extract JWT token from Authorization header
-                // The JWT token should be sent in the 'Authorization' header with 'Bearer ' prefix
                 var authHeader = req.Headers["Authorization"].FirstOrDefault();
                 
                 // Check if the Authorization header exists and has the correct format
@@ -90,7 +84,6 @@ namespace API
                 var token = authHeader.Substring("Bearer ".Length);
                 
                 // Step 3: Validate the JWT token
-                // Use the JWT service to validate the token and extract user information
                 var principal = JwtService.ValidateToken(token);
                 if (principal == null)
                 {
@@ -105,7 +98,6 @@ namespace API
                 }
 
                 // Step 4: Extract user ID from the JWT token
-                // The user ID is stored in the token as a claim
                 var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -119,51 +111,61 @@ namespace API
                     return new UnauthorizedObjectResult("Invalid token");
                 }
 
-                // Step 5: Read and parse the request body
-                // Read the entire request body as a string
-                string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                // Step 5: Verify user exists in database
+                await CosmosDbService.InitializeAsync();
+                var user = await CosmosDbService.GetUserByIdAsync(userId);
                 
-                // Deserialize the JSON request body into a ShoppingListItem object
-                var item = JsonConvert.DeserializeObject<ShoppingListItem>(requestBody);
-
-                // Step 6: Validate the item data
-                // Check if the item is null or missing required fields
-                if (item == null || string.IsNullOrEmpty(item.ItemName))
+                if (user == null)
                 {
-                    log.LogWarning("Invalid item data - missing required fields");
+                    log.LogWarning("User not found in database for token validation: {UserId}", userId);
                     
                     // Add CORS headers to the response
                     req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
                     req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
                     req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
                     
-                    return new BadRequestObjectResult("ItemName is required");
+                    return new UnauthorizedObjectResult("User not found");
                 }
 
-                // Step 7: Associate the item with the authenticated user
-                // Set the user ID to ensure the item belongs to the correct user
-                item.UserId = userId;
+                // Step 6: Check if user account is active
+                if (user.Status != Models.UserStatus.Active)
+                {
+                    log.LogWarning("Inactive user account attempting token validation: {UserId}", userId);
+                    
+                    // Add CORS headers to the response
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+                    req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
+                    
+                    return new UnauthorizedObjectResult("Account is not active");
+                }
 
-                // Step 8: Save the item to Cosmos DB
-                // Create the new shopping list item in the database
-                var addedItem = await CosmosDbService.CreateItemAsync(item);
-
-                // Log successful item creation
-                log.LogInformation("Successfully added item '{ItemName}' for user: {UserId}", addedItem.ItemName, userId);
-
-                // Step 9: Add CORS headers to the response
+                // Step 7: Add CORS headers to the response
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-Subscription-Key, Authorization");
 
-                // Step 10: Return the created item
-                // Return HTTP 201 Created with the newly created item
-                return new CreatedAtActionResult("GetShoppingList", "GetShoppingList", new { id = addedItem.Id }, addedItem);
+                // Step 8: Return user information (without sensitive data)
+                var userInfo = new
+                {
+                    userId = user.Id,
+                    username = user.Username,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    role = user.Role,
+                    status = user.Status,
+                    createdAt = user.CreatedAt,
+                    updatedAt = user.UpdatedAt
+                };
+
+                log.LogInformation("Token validation successful for user: {Username}", user.Username);
+                return new OkObjectResult(userInfo);
             }
             catch (Exception ex)
             {
-                // Log any unexpected errors that occur during the process
-                log.LogError(ex, "Unexpected error while adding item");
+                // Log any unexpected errors that occur during the validation process
+                log.LogError(ex, "Unexpected error during token validation");
                 
                 // Add CORS headers to the response
                 req.HttpContext.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000");

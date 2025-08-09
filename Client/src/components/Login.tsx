@@ -11,8 +11,11 @@ import {
     Tab,
     FormControlLabel,
     Checkbox,
-    CircularProgress
+    CircularProgress,
+    IconButton,
+    InputAdornment
 } from '@mui/material';
+import { Visibility, VisibilityOff, ShoppingCart } from '@mui/icons-material';
 import { LoginRequest, RegisterRequest, AuthResponse, UserRole, UserStatus } from '../types/Auth';
 import { authService } from '../services/auth';
 
@@ -110,12 +113,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         try {
             // Call the authentication service to login
+            console.log('Attempting login...');
             const response = await authService.login(loginData);
+            console.log('Login successful, response:', response);
             
-            // Store the JWT token in localStorage
+            // Store the JWT token in sessionStorage
             authService.setToken(response.token);
+            console.log('Token stored in sessionStorage');
+            
+            // Verify token was stored
+            const storedToken = authService.getToken();
+            console.log('Stored token verification:', storedToken ? 'Token found' : 'Token not found');
             
             // If successful, call the onLoginSuccess callback
+            console.log('Calling onLoginSuccess callback');
             onLoginSuccess();
         } catch (err: any) {
             // Handle login errors and display appropriate message
@@ -161,12 +172,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         try {
             // Call the authentication service to register
+            console.log('Attempting registration...');
             const response = await authService.register(registerData);
+            console.log('Registration successful, response:', response);
             
-            // Store the JWT token in localStorage
+            // Store the JWT token in sessionStorage
             authService.setToken(response.token);
+            console.log('Token stored in sessionStorage');
+            
+            // Verify token was stored
+            const storedToken = authService.getToken();
+            console.log('Stored token verification:', storedToken ? 'Token found' : 'Token not found');
             
             // If successful, call the onLoginSuccess callback (registration auto-logs in user)
+            console.log('Calling onLoginSuccess callback');
             onLoginSuccess();
         } catch (err: any) {
             // Handle registration errors and display appropriate message
@@ -179,29 +198,122 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     };
 
     return (
-        <Container component="main" maxWidth="sm">
+        <Container component="main" maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
             <Box
                 sx={{
                     marginTop: 8,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    minHeight: '100vh',
+                    justifyContent: 'center',
                 }}
             >
-                <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-                    <Typography component="h1" variant="h4" align="center" gutterBottom>
-                        Shopping List App
+                {/* Beautiful header with icon */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        mb: 4,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: 2,
+                            boxShadow: '0 8px 32px 0 rgba(99, 102, 241, 0.3)',
+                        }}
+                    >
+                        <ShoppingCart sx={{ fontSize: 40, color: 'white' }} />
+                    </Box>
+                    <Typography 
+                        component="h1" 
+                        variant="h3" 
+                        align="center" 
+                        gutterBottom
+                        sx={{
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%)',
+                            backgroundClip: 'text',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            mb: 1,
+                        }}
+                    >
+                        Shopping List
                     </Typography>
-                    
+                    <Typography 
+                        variant="body1" 
+                        align="center" 
+                        sx={{ 
+                            color: '#a1a1aa',
+                            fontSize: '1.1rem',
+                        }}
+                    >
+                        Organize your shopping with elegance
+                    </Typography>
+                </Box>
+
+                <Paper 
+                    elevation={0}
+                    sx={{ 
+                        padding: 4, 
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.3)',
+                        borderRadius: 2,
+                    }}
+                >
                     {/* Tab navigation for Login/Register */}
-                    <Tabs value={tabValue} onChange={handleTabChange} centered>
-                        <Tab label="Login" />
-                        <Tab label="Register" />
+                    <Tabs 
+                        value={tabValue} 
+                        onChange={handleTabChange} 
+                        centered
+                        sx={{
+                            mb: 3,
+                            '& .MuiTab-root': {
+                                color: '#a1a1aa',
+                                fontWeight: 600,
+                                fontSize: '1rem',
+                                '&.Mui-selected': {
+                                    color: '#6366f1',
+                                },
+                            },
+                            '& .MuiTabs-indicator': {
+                                backgroundColor: '#6366f1',
+                                height: 3,
+                                borderRadius: 2,
+                            },
+                        }}
+                    >
+                        <Tab label="Sign In" />
+                        <Tab label="Create Account" />
                     </Tabs>
 
                     {/* Display error messages if any */}
                     {error && (
-                        <Alert severity="error" sx={{ mt: 2 }}>
+                        <Alert 
+                            severity="error" 
+                            sx={{ 
+                                mt: 2, 
+                                mb: 2,
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#fca5a5',
+                                '& .MuiAlert-icon': {
+                                    color: '#fca5a5',
+                                },
+                            }}
+                        >
                             {error}
                         </Alert>
                     )}
@@ -221,6 +333,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 value={loginData.username}
                                 onChange={handleLoginChange('username')}
                                 disabled={loading}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                }}
                             />
                             <TextField
                                 margin="normal"
@@ -234,25 +351,50 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 value={loginData.password}
                                 onChange={handleLoginChange('password')}
                                 disabled={loading}
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={showPassword}
-                                        onChange={(e) => setShowPassword(e.target.checked)}
-                                        color="primary"
-                                    />
-                                }
-                                label="Show password"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="toggle password visibility"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                edge="end"
+                                                sx={{ color: '#a1a1aa' }}
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                }}
                             />
                             <Button
                                 type="submit"
                                 fullWidth
                                 variant="contained"
-                                sx={{ mt: 3, mb: 2 }}
+                                sx={{ 
+                                    mt: 4, 
+                                    mb: 2,
+                                    py: 1.5,
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                }}
                                 disabled={loading}
                             >
-                                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+                                {loading ? (
+                                    <CircularProgress size={24} sx={{ color: 'white' }} />
+                                ) : (
+                                    'Sign In'
+                                )}
                             </Button>
                         </Box>
                     )}
@@ -273,6 +415,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 onChange={handleRegisterChange('username')}
                                 disabled={loading}
                                 helperText="Choose a unique username (3-50 characters)"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                    '& .MuiFormHelperText-root': {
+                                        color: '#a1a1aa',
+                                    },
+                                }}
                             />
                             <TextField
                                 margin="normal"
@@ -286,6 +436,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 value={registerData.email}
                                 onChange={handleRegisterChange('email')}
                                 disabled={loading}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                }}
                             />
                             <TextField
                                 margin="normal"
@@ -298,6 +453,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 value={registerData.firstName}
                                 onChange={handleRegisterChange('firstName')}
                                 disabled={loading}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                }}
                             />
                             <TextField
                                 margin="normal"
@@ -310,6 +470,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 value={registerData.lastName}
                                 onChange={handleRegisterChange('lastName')}
                                 disabled={loading}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                }}
                             />
                             <TextField
                                 margin="normal"
@@ -324,25 +489,53 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 onChange={handleRegisterChange('password')}
                                 disabled={loading}
                                 helperText="Minimum 6 characters"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={showPassword}
-                                        onChange={(e) => setShowPassword(e.target.checked)}
-                                        color="primary"
-                                    />
-                                }
-                                label="Show password"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="toggle password visibility"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                edge="end"
+                                                sx={{ color: '#a1a1aa' }}
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1,
+                                    },
+                                    '& .MuiFormHelperText-root': {
+                                        color: '#a1a1aa',
+                                    },
+                                }}
                             />
                             <Button
                                 type="submit"
                                 fullWidth
                                 variant="contained"
-                                sx={{ mt: 3, mb: 2 }}
+                                sx={{ 
+                                    mt: 4, 
+                                    mb: 2,
+                                    py: 1.5,
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                    transition: 'all 0.2s ease-in-out',
+                                }}
                                 disabled={loading}
                             >
-                                {loading ? <CircularProgress size={24} /> : 'Create Account'}
+                                {loading ? (
+                                    <CircularProgress size={24} sx={{ color: 'white' }} />
+                                ) : (
+                                    'Create Account'
+                                )}
                             </Button>
                         </Box>
                     )}

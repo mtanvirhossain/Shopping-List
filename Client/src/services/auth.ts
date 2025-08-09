@@ -25,6 +25,7 @@ const DEMO_SUBSCRIPTION_KEYS = {
 /**
  * Authentication service for handling user login, registration, and token management
  * This service provides methods for authenticating users and managing JWT tokens
+ * Uses sessionStorage for better security (cleared when browser closes)
  */
 export const authService = {
     /**
@@ -84,36 +85,99 @@ export const authService = {
     },
 
     /**
-     * Stores the JWT token in browser's localStorage
-     * localStorage persists data even after browser is closed
+     * Stores the JWT token in browser's sessionStorage
+     * sessionStorage persists data only for the current browser session
+     * Data is cleared when the browser tab/window is closed
      * @param token - The JWT token to store
      */
     setToken: (token: string): void => {
-        localStorage.setItem('authToken', token);
+        console.log('Setting token in sessionStorage:', token ? 'Token provided' : 'No token');
+        sessionStorage.setItem('authToken', token);
+        console.log('Token stored successfully');
     },
 
     /**
-     * Retrieves the JWT token from browser's localStorage
+     * Retrieves the JWT token from browser's sessionStorage
      * @returns The stored JWT token or null if not found
      */
     getToken: (): string | null => {
-        return localStorage.getItem('authToken');
+        const token = sessionStorage.getItem('authToken');
+        console.log('Getting token from sessionStorage:', token ? 'Token found' : 'No token found');
+        return token;
     },
 
     /**
-     * Removes the JWT token from browser's localStorage
+     * Removes the JWT token from browser's sessionStorage
      * This is used when the user logs out
      */
     removeToken: (): void => {
-        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('authToken');
     },
 
     /**
      * Checks if the user is currently authenticated
+     * Validates that token exists and is not expired
      * @returns True if a valid token exists, false otherwise
      */
     isAuthenticated: (): boolean => {
-        return !!localStorage.getItem('authToken');
+        const token = sessionStorage.getItem('authToken');
+        console.log('isAuthenticated check - token exists:', !!token);
+        
+        if (!token) {
+            console.log('No token found in sessionStorage');
+            return false;
+        }
+        
+        try {
+            // Decode the JWT token to check expiration
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+            
+            console.log('Token payload:', payload);
+            console.log('Current time:', currentTime);
+            console.log('Token expiration:', payload.exp);
+            
+            // Check if token is expired
+            if (payload.exp && payload.exp < currentTime) {
+                console.log('Token is expired, removing from sessionStorage');
+                // Token is expired, remove it
+                sessionStorage.removeItem('authToken');
+                return false;
+            }
+            
+            console.log('Token is valid and not expired');
+            return true;
+        } catch (error) {
+            console.log('Token is malformed, removing from sessionStorage');
+            // If token is malformed, remove it and return false
+            sessionStorage.removeItem('authToken');
+            return false;
+        }
+    },
+
+    /**
+     * Validates the current token with the server
+     * This provides an additional layer of security by checking against the database
+     * @returns Promise that resolves to true if token is valid
+     */
+    validateToken: async (): Promise<boolean> => {
+        const token = sessionStorage.getItem('authToken');
+        if (!token) return false;
+
+        try {
+            // Make a request to the dedicated token validation endpoint
+            const response = await axios.post(`${API_BASE_URL}/ValidateToken`, {}, {
+                headers: {
+                    'X-Subscription-Key': DEMO_SUBSCRIPTION_KEYS.DEMO,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response.status === 200;
+        } catch (error) {
+            // If validation fails, remove the token
+            sessionStorage.removeItem('authToken');
+            return false;
+        }
     },
 
     /**
@@ -122,6 +186,14 @@ export const authService = {
      */
     getSubscriptionKey: (): string => {
         return DEMO_SUBSCRIPTION_KEYS.DEMO;
+    },
+
+    /**
+     * Logs out the current user by removing the token
+     * This ensures the user is properly logged out
+     */
+    logout: (): void => {
+        sessionStorage.removeItem('authToken');
     },
 
     /**

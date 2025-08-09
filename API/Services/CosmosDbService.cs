@@ -395,5 +395,42 @@ namespace API.Services
                 return false;
             }
         }
+
+        /// <summary>
+        /// Gets a specific shopping list item by ID for a specific user
+        /// </summary>
+        /// <param name="itemId">The ID of the item to retrieve</param>
+        /// <param name="userId">The ID of the user who owns the item</param>
+        /// <returns>The shopping list item if found and belongs to the user, null otherwise</returns>
+        public static async Task<ShoppingListItem?> GetItemByIdAsync(string itemId, string userId)
+        {
+            if (_itemsContainer == null) await InitializeAsync();
+
+            try
+            {
+                // First, try to get the item by ID
+                var response = await _itemsContainer!.ReadItemAsync<ShoppingListItem>(itemId, new PartitionKey(itemId));
+                var item = response.Resource;
+                
+                // Check if the item belongs to the specified user
+                if (item.UserId == userId)
+                {
+                    return item;
+                }
+                
+                // Item exists but doesn't belong to the user
+                return null;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Item not found
+                return null;
+            }
+            catch
+            {
+                // Any other error
+                return null;
+            }
+        }
     }
 } 

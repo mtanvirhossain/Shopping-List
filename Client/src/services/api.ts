@@ -26,8 +26,8 @@ const api = axios.create({
 // This interceptor runs before every request to automatically add required headers
 api.interceptors.request.use(
     (config) => {
-        // Get the JWT token from localStorage
-        const token = localStorage.getItem('authToken');
+        // Get the JWT token from sessionStorage
+        const token = sessionStorage.getItem('authToken');
         if (token) {
             // Add the JWT token to the Authorization header
             config.headers.Authorization = `Bearer ${token}`;
@@ -100,7 +100,7 @@ export const shoppingListApi = {
 
     // Get item by ID
     getItemById: async (id: string): Promise<ShoppingListItem> => {
-        const response = await api.get(`/GetShoppingList/${id}`);
+        const response = await api.get(`/GetShoppingListById/${id}`);
         return response.data;
     },
 
@@ -112,12 +112,12 @@ export const shoppingListApi = {
 
     // Update item
     updateItem: async (id: string, item: ShoppingListItem): Promise<ShoppingListItem> => {
-        const response = await api.put(`/${id}`, item);
+        const response = await api.put(`/UpdateShoppingItem/${id}`, item);
         return response.data;
     },
 
     // Delete item
     deleteItem: async (id: string): Promise<void> => {
-        await api.delete(`/${id}`);
+        await api.delete(`/DeleteShoppingItem/${id}`);
     },
 }; 
